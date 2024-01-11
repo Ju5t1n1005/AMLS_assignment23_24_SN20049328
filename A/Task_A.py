@@ -13,7 +13,7 @@ def run_task_a():
     # The training, validation, and test sets of the NumPy file containing the PneumoniaMNIST dataset are loaded.
     # These datasets are used, in turn, to train the model, adjust its parameters, and assess its effectiveness.
 
-    data = np.load(r'C:\Users\11029\Downloads\学习\大四\上学期\ELEC0134\Coursework\Assignment\Coursework\Datasets\pneumoniamnist.npz')
+    data = np.load(r'Datasets\pneumoniamnist.npz')
     train_images = data['train_images']  
     val_images = data['val_images']      
     test_images = data['test_images']    
