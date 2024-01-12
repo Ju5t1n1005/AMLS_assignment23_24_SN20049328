@@ -1,3 +1,4 @@
+# Introduce the necessary libraries
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,62 +11,71 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import confusion_matrix, classification_report
 
 def run_task_B():
-    # Initialize a consistent random state for reproducibility
+
+    # Setting random seeds to ensure reproducible results
     np.random.seed(42)
     tf.random.set_seed(42)
 
-    # Replace with the path to your PathMNIST dataset
+    # dataset path, please replace with the actual path of your PathMNIST dataset
     file_path = 'Datasets/pathmnist.npz'
 
-    # Load the dataset from specified path
+    # Load the .npz file
     data = np.load(file_path)
+    train_images = data['train_images']
+    val_images = data['val_images']
+    test_images = data['test_images']
+    train_labels = data['train_labels']
+    val_labels = data['val_labels']
+    test_labels = data['test_labels']
 
-    # Split the dataset into training, validation, and test sets
-    train_images, val_images, test_images = data['train_images'], data['val_images'], data['test_images']
-    train_labels, val_labels, test_labels = data['train_labels'], data['val_labels'], data['test_labels']
+    # Pre-process data: Normalise image data to 0-1 range to optimise training process
+    train_images = train_images.astype('float32') / 255
+    val_images = val_images.astype('float32') / 255
+    test_images = test_images.astype('float32') / 255
 
-    # Normalize image data to the [0, 1] range
-    train_images, val_images, test_images = train_images / 255.0, val_images / 255.0, test_images / 255.0
+    # Convert tags to one-hot coding for easy categorisation
+    train_labels = to_categorical(train_labels, 9)
+    val_labels = to_categorical(val_labels, 9)
+    test_labels = to_categorical(test_labels, 9)
 
-    # Convert integer labels into one-hot encoded vectors
-    num_classes = 9
-    train_labels = to_categorical(train_labels, num_classes)
-    val_labels = to_categorical(val_labels, num_classes)
-    test_labels = to_categorical(test_labels, num_classes)
-
-    # Define the CNN architecture with VGG-like layers
+    # Building CNN models: using a VGG-style network structure
     model = Sequential([
-        # Convolutional layers to extract features; using ReLU activation and same padding
-        Conv2D(32, (3, 3), padding='same', activation='relu', input_shape=(28, 28, 3)),
-        # Doubling the number of filters with each convolutional block
+        Conv2D(32, (3, 3), padding='same', activation='relu', input_shape=(28, 28, 3)),     # Input layer: receives image data of 28x28x3 size
+        Conv2D(32, (3, 3), padding='same', activation='relu'),                              # The second convolutional layer
+        MaxPooling2D(2, 2),                                                                 # Pooled layers, reduced feature map size, reduced number of parameters
+        Dropout(0.3),               # Increase Dropout rate to reduce overfitting 
+        Conv2D(64, (3, 3), padding='same', activation='relu'),                              # More convolutional and pooling layers
         Conv2D(64, (3, 3), padding='same', activation='relu'),
-        # Max pooling to reduce spatial dimensions of the feature maps
         MaxPooling2D(2, 2),
-        # Dropout layers to mitigate overfitting by randomly dropping out nodes during training
         Dropout(0.3),
+        Conv2D(128, (3, 3), padding='same', activation='relu'),
+        Conv2D(128, (3, 3), padding='same', activation='relu'),
+        MaxPooling2D(2, 2),
         Flatten(),
-        # Dense layer for classification
         Dense(128, activation='relu'),
         Dropout(0.5),
-        # Output layer with softmax activation for multi-class probability distribution
-        Dense(num_classes, activation='softmax')
+        Dense(9, activation='softmax')                                      # Output layer: use softmax activation function to output probabilities for 9 categories
     ])
 
-    # Implement early stopping to halt training when validation loss doesn't improve
+    # Set early stop to prevent overfitting, stop training if no lift in 3 iterations
     early_stopping = EarlyStopping(monitor='val_loss', patience=3)
 
-    # Compile the model with the Adam optimizer and categorical crossentropy loss
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    # Compilation models: using the adam optimiser and multiclass cross-entropy loss functions
+    model.compile(optimizer='adam', 
+                loss='categorical_crossentropy', 
+                metrics=['accuracy'])
 
-    # Fit the model on the training data, validating on validation data
+    # Train the model
     history = model.fit(
-        train_images, train_labels,
-        batch_size=64, epochs=30,
-        validation_data=(val_images, val_labels),
+        train_images, 
+        train_labels, 
+        batch_size=64, 
+        epochs=30, 
+        validation_data=(val_images, val_labels), 
         callbacks=[early_stopping]
     )
 
-    # Plot training/validation loss and accuracy to assess model performance over epochs
+    # Plot the training and validation loss and accuracy
     plt.figure(figsize=(12, 5))
     plt.subplot(1, 2, 1)
     plt.plot(history.history['loss'], label='Training Loss')
@@ -80,25 +90,28 @@ def run_task_B():
     plt.legend()
     plt.show()
 
-    # Evaluate the model's performance on the test dataset
+    # Test and evaluate the model
     test_loss, test_acc = model.evaluate(test_images, test_labels)
-    print(f"Test loss: {test_loss}\nTest accuracy: {test_acc}")
+    print(f"Test loss: {test_loss}")
+    print(f"Test accuracy: {test_acc}")
 
-    # Predict on test dataset and generate a confusion matrix and classification report
+    # Generate a confusion matrix and classification report
     predictions = model.predict(test_images)
     predicted_labels = np.argmax(predictions, axis=1)
     true_labels = np.argmax(test_labels, axis=1)
 
-    # Visualize the confusion matrix using Seaborn's heatmap
+    # Plot the confusion matrix using Seaborn
+    cm = confusion_matrix(true_labels, predicted_labels)
     plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=range(num_classes), yticklabels=range(num_classes))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=range(9), yticklabels=range(9))
     plt.xlabel('Predicted')
     plt.ylabel('True')
     plt.title('Confusion Matrix')
     plt.show()
 
-    # Output a detailed classification report
+    # Print the classification report
+    target_names = ['Class 0', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8']
     print("\nClassification Report:")
-    print(classification_report(true_labels, predicted_labels, target_names=[f'Class {i}' for i in range(num_classes)]))
+    print(classification_report(true_labels, predicted_labels, target_names=target_names))
 
     print("Task B has been executed.")
