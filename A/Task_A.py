@@ -8,7 +8,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import confusion_matrix, classification_report
 
-def run_task_a():
+def run_task_A():
     # Load the dataset
     # The training, validation, and test sets of the NumPy file containing the PneumoniaMNIST dataset are loaded.
     # These datasets are used, in turn, to train the model, adjust its parameters, and assess its effectiveness.
@@ -136,3 +136,5 @@ def run_task_a():
 
     print("\nClassification Report:")
     print(classification_report(test_labels, predictions, target_names=['Normal', 'Pneumonia']))
+
+    print("Task A has been executed.")
